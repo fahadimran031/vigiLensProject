@@ -8,7 +8,7 @@ with open("face_encodings.pkl", "rb") as file:
     known_encodings, known_names = pickle.load(file)
 
 # Read input image
-input_image_path = "245322733097.jpeg"  # Replace with actual image
+input_image_path = "245322733097.jpeg"
 image = face_recognition.load_image_file(input_image_path)
 
 # Detect faces
