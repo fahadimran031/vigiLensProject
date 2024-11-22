@@ -40,7 +40,8 @@ def company_signup():
     # Store the company data in the database
     company_id = companies.insert_one({
         "name": company_name,
-        "password": hashed_password
+        "password": hashed_password,
+        "users": []  # Initialize an empty array to store user IDs
     }).inserted_id
 
     return jsonify({"message": "Company registered successfully", "company_id": str(company_id)}), 201
@@ -82,9 +83,15 @@ def add_user():
     if not name or not face_encodings or not isinstance(face_encodings, list):
         return jsonify({"error": "Invalid input: 'name' and 'face_encodings' (array) are required"}), 400
 
-    # Add user to the database with the associated company_id
+    # Add user to the user collection
     user = {"name": name, "face_encodings": face_encodings, "company_id": current_company_id}
     user_id = users.insert_one(user).inserted_id
+
+    # Update the company's document to include this user's ID
+    companies.update_one(
+        {"_id": ObjectId(current_company_id)},
+        {"$push": {"users": user_id}}
+    )
 
     return jsonify({"message": f"User {name} added successfully.", "user_id": str(user_id)}), 201
 
@@ -95,10 +102,16 @@ def add_user():
 def get_users():
     current_company_id = get_jwt_identity()  # Extract company_id as string
 
-    # Fetch users associated with this company
-    company_users = list(users.find({"company_id": current_company_id}, {"_id": 1, "name": 1, "face_encodings": 1}))
+    # Fetch the company and its users
+    company = companies.find_one({"_id": ObjectId(current_company_id)}, {"users": 1})
+    if not company or "users" not in company:
+        return jsonify({"error": "No users found for this company"}), 404
+
+    # Fetch user details for all user IDs in the company's "users" array
+    company_users = list(users.find({"_id": {"$in": company["users"]}}, {"_id": 1, "name": 1, "face_encodings": 1}))
     for user in company_users:
         user["_id"] = str(user["_id"])  # Convert ObjectId to string for JSON serialization
+
     return jsonify(company_users), 200
 
 
@@ -113,7 +126,10 @@ def get_user(user_id):
         return jsonify({"error": "Invalid user ID"}), 400
 
     # Fetch user by ID and ensure they belong to the authenticated company
-    user = users.find_one({"_id": ObjectId(user_id), "company_id": current_company_id}, {"_id": 1, "name": 1, "face_encodings": 1})
+    user = users.find_one(
+        {"_id": ObjectId(user_id), "company_id": current_company_id},
+        {"_id": 1, "name": 1, "face_encodings": 1}
+    )
     if not user:
         return jsonify({"error": "User not found or does not belong to your company"}), 404
 
