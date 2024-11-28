@@ -7,8 +7,8 @@ class mailing:
     # receiver_email = "fardeenahmad853@gmail.com"
     # receiver_email = "mosako021@gmail.com"
     def __init__(self) -> None:
-        self.sender_email = "dweb75260@gmail.com"
-        self.password = "kxlogozjjwpxlvre"
+        self.sender_email = "dweb75260@gmail.com" ## mail
+        self.password = "" ##mail pass key
         self.smtp_server = "smtp.google.com"
         self.smtp_port = 587
         self.subject = "Intrusion Alert"
